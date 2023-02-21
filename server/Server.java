@@ -1,11 +1,12 @@
 import java.net.*;
 import java.io.*;
+import java.util.ArrayList;
 import java.security.*;
 import java.security.spec.*;
 import javax.crypto.*;
 import java.util.ArrayList;
 
-public class Server extends Thread {
+class Server {
 
     private static final int PORT = 7791;
     private static KeyPair keyPair = null;
@@ -25,13 +26,9 @@ public class Server extends Thread {
 
         while(true) {
             Socket client = server.accept();
-            System.out.println("client connected: " + client.toString());
+            System.out.println("Client connected: " + client.toString());
             new ServerThread(client).start();
         }
-    }
-
-    public static KeyPair getKeyPair() {
-        return keyPair;
     }
 
     public static void log(String msg) {
@@ -82,5 +79,9 @@ public class Server extends Thread {
             str = str + i + ": " + rooms.get(i).getRoomName() + "\n";
         }
         return str;
+    }
+
+    public static KeyPair getKeyPair() {
+        return keyPair;
     }
 }

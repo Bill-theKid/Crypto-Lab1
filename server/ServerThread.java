@@ -1,3 +1,7 @@
+// Server thread class implemented with the Runnable interface
+// Clients are accepted by the main thread and a new thread is 
+// opened on the server to handle each client
+
 import java.util.Base64;
 import java.net.*;
 import java.io.*;
@@ -6,7 +10,7 @@ import java.security.spec.*;
 import javax.crypto.*;
 
 public class ServerThread extends Thread {
-
+    
     private Socket client;
     private String username;
     private BufferedReader in;
@@ -15,18 +19,19 @@ public class ServerThread extends Thread {
     private static final String COMMANDS = "Type /join [room #] to join a room\nType /create [room name] to create a room\nType /rooms to display open rooms\nType /help to display this message again";
     private byte[] sessionKey;
 
-    public ServerThread(Socket sock) throws Exception {
-        client = sock;
-        in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-        out = new PrintWriter(client.getOutputStream(), true);
-    }
-
-    ServerThread(Socket sock, String name) throws IOException {
-        client = sock;
-        username = name;
+    ServerThread(Socket client) throws IOException {
+        this.client = client;
         in = new BufferedReader(new InputStreamReader(client.getInputStream()));
         out = new PrintWriter(client.getOutputStream(), true);
     }
+
+    ServerThread(Socket client, String username) throws IOException {
+        this.client = client;
+        this.username = username;
+        in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+        out = new PrintWriter(client.getOutputStream(), true);
+    }
+
 
     public void run() {
         try {
@@ -67,11 +72,13 @@ public class ServerThread extends Thread {
 
             System.out.println("Sending public key...");
             keyBytes = Server.getKeyPair().getPublic().getEncoded();
+            keyBytes = Server.getKeyPair().getPublic().getEncoded();
             dataOut.writeInt(keyBytes.length);
             dataOut.write(keyBytes);
 
             System.out.println("Generating session key...");
             KeyAgreement ka = KeyAgreement.getInstance("DH");
+            ka.init(Server.getKeyPair().getPrivate());
             ka.init(Server.getKeyPair().getPrivate());
             ka.doPhase(clientPub, true);
             sessionKey = ka.generateSecret();
