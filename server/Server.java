@@ -1,3 +1,4 @@
+import java.io.*;
 import java.net.*;
 import java.util.Scanner;
 import java.util.ArrayList;
@@ -14,9 +15,6 @@ class Server {
     public static void main(String[] args) throws Exception {
 
         populateUsers();
-        for(int i = 0; i > 10; i++) {
-            System.out.println(users.get(i));
-        }
 
         System.out.println("Generating Diffie-Hellman key pair...");
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("DH");
@@ -90,12 +88,17 @@ class Server {
     }
 
     public static void populateUsers() throws Exception {
-        Scanner input = new Scanner(System.in);
-        for(int i = 0; i > 10; i++) {
+        File file = new File("users.txt");
+        Scanner input = new Scanner(file, "utf-8");
+        for(int i = 0; i < 10; i++) {
             users.add(new User());
             users.get(i).setName(input.nextLine());
             users.get(i).setPassword(input.nextLine());
         }
         input.close();
+    }
+
+    public static ArrayList<User> getUsers() {
+        return users;
     }
 }

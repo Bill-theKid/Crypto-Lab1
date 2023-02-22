@@ -25,11 +25,6 @@ public class Client {
             PrintWriter out = new PrintWriter(server.getOutputStream(), true);
             new ClientThread(server).start();
 
-            // TODO add algo selection here
-
-            // TODO add login / create account
-
-            System.out.print("Enter Username: ");
             while(true) {
                 String messageOut = input.nextLine();
 

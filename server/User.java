@@ -1,9 +1,10 @@
 import java.security.*;
+import java.util.Arrays;
 
 public class User {
 
     private String username;
-    private String passwordHash;
+    private byte[] passwordHash;
 
     public User() {
         username = null;
@@ -21,19 +22,14 @@ public class User {
     public void setPassword(String password) throws Exception {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         byte[] hash = md.digest(password.getBytes());
-        passwordHash = hash.toString();
-    }
-
-    public Boolean passwordMatches(String password) throws Exception {
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        byte[] hash = md.digest(password.getBytes());
-        return passwordHash.equals(hash.toString());
+        passwordHash = hash;
     }
 
     public Boolean validLogin(String name, String password) throws Exception {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         byte[] hash = md.digest(password.getBytes());
-        return (passwordHash.equals(hash.toString()) &&
+
+        return (Arrays.equals(hash, passwordHash) &&
                 username.equals(name));
     }
 
