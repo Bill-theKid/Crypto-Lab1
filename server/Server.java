@@ -1,10 +1,7 @@
 import java.net.*;
-import java.io.*;
+// import java.util.Scanner;
 import java.util.ArrayList;
 import java.security.*;
-import java.security.spec.*;
-import javax.crypto.*;
-import java.util.ArrayList;
 
 class Server {
 
@@ -20,14 +17,15 @@ class Server {
         kpg.initialize(Skip.sDHParameterSpec);
         keyPair = kpg.genKeyPair();
 
-        ServerSocket server = new ServerSocket(PORT);
-        System.out.println("Server opened at " + InetAddress.getLocalHost());
-        System.out.println("Awaiting client connections...");
+        try (ServerSocket server = new ServerSocket(PORT)) {
+            System.out.println("Server opened at " + InetAddress.getLocalHost());
+            System.out.println("Awaiting client connections...");
 
-        while(true) {
-            Socket client = server.accept();
-            System.out.println("Client connected: " + client.toString());
-            new ServerThread(client).start();
+            while(true) {
+                Socket client = server.accept();
+                System.out.println("Client connected: " + client.toString());
+                new ServerThread(client).start();
+            }
         }
     }
 
@@ -36,9 +34,9 @@ class Server {
     }
 
     public void sendToAll(ServerThread client, String message) {
-        message = client.getUsername() + ": " + message;
+        message = client.getUser().getName() + ": " + message;
         for(int i = 0; i < clients.size(); i++) {
-            if(clients.get(i).getUsername().equals(client.getUsername()))
+            if(clients.get(i).getUser().getName().equals(client.getUser().getName()))
                 continue;
             else
                 clients.get(i).send(message);

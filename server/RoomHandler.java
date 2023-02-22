@@ -9,9 +9,9 @@ public class RoomHandler {
     }
 
     public void sendToAll(ServerThread client, String message) {
-        message = client.getUsername() + ": " + message;
+        message = client.getUser().getName() + ": " + message;
         for(int i = 0; i < clients.size(); i++) {
-            if(clients.get(i).getUsername().equals(client.getUsername()))
+            if(clients.get(i).getUser().getName().equals(client.getUser().getName()))
                 continue;
             else
                 clients.get(i).send(message);
@@ -33,13 +33,13 @@ public class RoomHandler {
     }
 
     public void addClient(ServerThread client) {
-        sendToAll(client.getUsername() + " joined the room.");
+        sendToAll(client.getUser().getName() + " joined the room.");
         clients.add(client);
     }
 
     public void removeClient(ServerThread client) {
         clients.remove(client);
-        sendToAll(client.getUsername() + " left the room.");
+        sendToAll(client.getUser().getName() + " left the room.");
         if(clients.size() == 0) {
             Server.removeRoom(this);
         }

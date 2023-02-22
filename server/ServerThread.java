@@ -1,4 +1,4 @@
-// Server thread class implemented with the Runnable interface
+// Server thread class
 // Clients are accepted by the main thread and a new thread is 
 // opened on the server to handle each client
 
@@ -12,7 +12,7 @@ import javax.crypto.*;
 public class ServerThread extends Thread {
     
     private Socket client;
-    private String username;
+    private User user;
     private BufferedReader in;
     private PrintWriter out;
     private RoomHandler room;
@@ -25,27 +25,25 @@ public class ServerThread extends Thread {
         out = new PrintWriter(client.getOutputStream(), true);
     }
 
-    ServerThread(Socket client, String username) throws IOException {
+    ServerThread(Socket client, User user) throws IOException {
         this.client = client;
-        this.username = username;
+        this.user = user;
         in = new BufferedReader(new InputStreamReader(client.getInputStream()));
         out = new PrintWriter(client.getOutputStream(), true);
     }
-
 
     public void run() {
         try {
 
             generateSessionKey();
 
-            username = in.readLine();
             send(Server.roomList() + COMMANDS);
             while(true) {
                 String messageIn = in.readLine();
                 parseInput(messageIn);
             }
         } catch(IOException e) {
-            room.sendServerMsg(username + " disconnected.");
+            room.sendServerMsg(user.getName() + " disconnected.");
             Server.log("Client disconnected: " + client.toString());
         } finally {
             out.close();
@@ -72,13 +70,11 @@ public class ServerThread extends Thread {
 
             System.out.println("Sending public key...");
             keyBytes = Server.getKeyPair().getPublic().getEncoded();
-            keyBytes = Server.getKeyPair().getPublic().getEncoded();
             dataOut.writeInt(keyBytes.length);
             dataOut.write(keyBytes);
 
             System.out.println("Generating session key...");
             KeyAgreement ka = KeyAgreement.getInstance("DH");
-            ka.init(Server.getKeyPair().getPrivate());
             ka.init(Server.getKeyPair().getPrivate());
             ka.doPhase(clientPub, true);
             sessionKey = ka.generateSecret();
@@ -98,15 +94,11 @@ public class ServerThread extends Thread {
                     try {
                         if(room != null) {
                             RoomHandler prev = room;
-                            Server.getRoom(Integer.parseInt(subStr[1])).addClient(this);
-                            room = Server.getRoom(Integer.parseInt(subStr[1]));
                             prev.removeClient(this);
-                            send("Joined " + room.getRoomName());
-                        } else {
-                            Server.getRoom(Integer.parseInt(subStr[1])).addClient(this);
-                            room = Server.getRoom(Integer.parseInt(subStr[1]));
-                            send("Joined " + room.getRoomName());
-                        }
+                        } 
+                        Server.getRoom(Integer.parseInt(subStr[1])).addClient(this);
+                        room = Server.getRoom(Integer.parseInt(subStr[1]));
+                        send("Joined " + room.getRoomName());
                     } catch(IndexOutOfBoundsException e) {
                         send("Invalid room number");
                     }
@@ -147,7 +139,7 @@ public class ServerThread extends Thread {
         out.println(message);
     }
     
-    public String getUsername() {
-        return username;
+    public User getUser() {
+        return user;
     }
 }
