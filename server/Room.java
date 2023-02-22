@@ -1,10 +1,10 @@
 import java.util.ArrayList;
 
-public class RoomHandler {
+public class Room {
     private String name;
     private ArrayList<ServerThread> clients = new ArrayList<>();
 
-    public RoomHandler(String name) {
+    public Room(String name) {
         this.name = name;
     }
 
