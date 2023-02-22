@@ -15,7 +15,7 @@ public class ServerThread extends Thread {
     private User user;
     private BufferedReader in;
     private PrintWriter out;
-    private RoomHandler room;
+    private Room room;
     private static final String COMMANDS = "Type /join [room #] to join a room\nType /create [room name] to create a room\nType /rooms to display open rooms\nType /help to display this message again";
     private byte[] sessionKey;
 
@@ -34,8 +34,9 @@ public class ServerThread extends Thread {
 
     public void run() {
         try {
-
             generateSessionKey();
+            send("Choose an encryption algorithm:\n1. DES\n2. AES");
+            
 
             send(Server.roomList() + COMMANDS);
             while(true) {
@@ -93,7 +94,7 @@ public class ServerThread extends Thread {
                 case "/join":
                     try {
                         if(room != null) {
-                            RoomHandler prev = room;
+                            Room prev = room;
                             prev.removeClient(this);
                         } 
                         Server.getRoom(Integer.parseInt(subStr[1])).addClient(this);

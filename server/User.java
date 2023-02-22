@@ -5,6 +5,11 @@ public class User {
     private String username;
     private String passwordHash;
 
+    public User() {
+        username = null;
+        passwordHash = null;
+    }
+
     public void setName(String username) {
         this.username = username;
     }
@@ -30,5 +35,9 @@ public class User {
         byte[] hash = md.digest(password.getBytes());
         return (passwordHash.equals(hash.toString()) &&
                 username.equals(name));
+    }
+
+    public String toString() {
+        return "username: " + username + " - password: " + passwordHash;
     }
 }

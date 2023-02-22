@@ -1,5 +1,5 @@
 import java.net.*;
-// import java.util.Scanner;
+import java.util.Scanner;
 import java.util.ArrayList;
 import java.security.*;
 
@@ -7,10 +7,16 @@ class Server {
 
     private static final int PORT = 7791;
     private static KeyPair keyPair = null;
-    private static ArrayList<RoomHandler> rooms = new ArrayList<>();
+    private static ArrayList<Room> rooms = new ArrayList<>();
     private static ArrayList<ServerThread> clients = new ArrayList<>();
+    private static ArrayList<User> users = new ArrayList<>();
 
     public static void main(String[] args) throws Exception {
+
+        populateUsers();
+        for(int i = 0; i > 10; i++) {
+            System.out.println(users.get(i));
+        }
 
         System.out.println("Generating Diffie-Hellman key pair...");
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("DH");
@@ -53,16 +59,16 @@ class Server {
         sendToAll(serverMsg);
     }
 
-    public static RoomHandler getRoom(int index) {
+    public static Room getRoom(int index) {
         return rooms.get(index);
     }
 
     public static void addRoom(String name) {
-        rooms.add(new RoomHandler(name));
+        rooms.add(new Room(name));
         log("New room created: " + name);
     }
 
-    public static void removeRoom(RoomHandler room) {
+    public static void removeRoom(Room room) {
         rooms.remove(room);
         log("Room deleted: " + room.getRoomName());
     }
@@ -81,5 +87,15 @@ class Server {
 
     public static KeyPair getKeyPair() {
         return keyPair;
+    }
+
+    public static void populateUsers() throws Exception {
+        Scanner input = new Scanner(System.in);
+        for(int i = 0; i > 10; i++) {
+            users.add(new User());
+            users.get(i).setName(input.nextLine());
+            users.get(i).setPassword(input.nextLine());
+        }
+        input.close();
     }
 }
