@@ -136,25 +136,24 @@ public class ServerThread extends Thread {
                 case "/join":
                     try {
                         if(room != null) {
-                            Room prev = room;
-                            prev.removeClient(this);
+                            room.removeClient(this);
                         } 
-                        Server.getRoom(Integer.parseInt(subStr[1])).addClient(this);
                         room = Server.getRoom(Integer.parseInt(subStr[1]));
-                        send("Joined " + room.getRoomName());
+                        room.addClient(this);
+                        send("Joined " + room.getName());
                     } catch(IndexOutOfBoundsException e) {
                         send("Invalid room number");
                     }
                     break;
                 case "/create":
                     try {
-                        Server.addRoom(subStr[1]);
                         if(room != null) {
                             room.removeClient(this);
                         }
-                        Server.getRoom(Server.numRooms() - 1).addClient(this);
-                        room = Server.getRoom(Server.numRooms() - 1);
-                        send("Joined " + room.getRoomName());
+                        room = new Room(subStr[1]);
+                        Server.addRoom(room);
+                        room.addClient(this);
+                        send("Joined " + room.getName());
                     } catch(ArrayIndexOutOfBoundsException e) {
                         send("command syntax: /create RoomName");
                     }

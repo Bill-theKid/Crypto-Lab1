@@ -58,17 +58,18 @@ class Server {
     }
 
     public static Room getRoom(int index) {
+        System.out.println("getting room");
         return rooms.get(index);
     }
 
-    public static void addRoom(String name) {
-        rooms.add(new Room(name));
-        log("New room created: " + name);
+    public static void addRoom(Room room) {
+        rooms.add(room);
+        log("New room created: " + room.getName());
     }
 
     public static void removeRoom(Room room) {
         rooms.remove(room);
-        log("Room deleted: " + room.getRoomName());
+        log("Room deleted: " + room.getName());
     }
 
     public static int numRooms() {
@@ -78,7 +79,7 @@ class Server {
     public static String roomList() {
         String str = "";
         for(int i = 0; i < Server.numRooms(); i++) {
-            str = str + i + ": " + rooms.get(i).getRoomName() + "\n";
+            str = str + i + ": " + rooms.get(i).getName() + "\n";
         }
         return str;
     }

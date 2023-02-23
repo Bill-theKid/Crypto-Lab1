@@ -28,11 +28,12 @@ public class Room {
         sendToAll(serverMsg);
     }
 
-    public String getRoomName() {
+    public String getName() {
         return name;
     }
 
     public void addClient(ServerThread client) {
+        System.out.println("adding client");
         sendToAll(client.getUser().getName() + " joined the room.");
         clients.add(client);
     }
