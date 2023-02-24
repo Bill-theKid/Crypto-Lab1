@@ -102,4 +102,12 @@ class Server {
     public static ArrayList<User> getUsers() {
         return users;
     }
+
+    public static User getUser(String name, String password) throws Exception {
+        for(int i = 0; i < users.size(); i++) {
+            if(users.get(i).validLogin(name, password))
+                return users.get(i);
+        }
+        return null;
+    }
 }

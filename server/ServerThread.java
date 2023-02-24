@@ -43,9 +43,43 @@ public class ServerThread extends Thread {
         try {
             generateSessionKey();
 
-            send("Choose an encryption algorithm:\n(Input corresponding number)\n1. DES\n2. AES");
-            int algoChoice = Integer.parseInt(in.readLine());
-            setAlgo(algoChoice);
+
+            // init encryption algo
+             // Create symmetric DES key for file exchange.
+            DESKeySpec desKeySpec = new DESKeySpec(secret); //@#$@#$*
+            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
+            sessionKey = keyFactory.generateSecret(desKeySpec);
+
+            // DES algorithm in CBC mode with PKCS5PPadding and random initialization vector.
+            Cipher des = Cipher.getInstance("DES/CBC/PKCS5Padding");
+            des.init(Cipher.ENCRYPT_MODE, sessionKey);  
+
+            byte[] iv = des.getIV();
+            dataOut.writeInt(iv.length);  // Length of initialization vector, plain text.
+            dataOut.write(iv);                 // Actual initialization vector, plain text.
+
+            byte[] input = new byte[64];      //Encrypt 64 byte blocks
+            while (true) {                
+                int bytesRead = fin.read(input);         
+                if (bytesRead == -1) break;       // Check EOF.
+                byte[] output = des.update(input, 0, bytesRead);
+                if (output != null) dataOut.write(output);  //Write encrypted info to client.
+
+            }
+
+            byte[] output = des.doFinal() ;  // Pad and flush 
+            if (output != null) dataOut.write(output);  // Write remaining to client.
+
+
+            out.flush();
+            out.close();
+            in.close();
+
+
+
+            // send("Choose an encryption algorithm:\n(Input corresponding number)\n1. DES\n2. AES");
+            // int algoChoice = Integer.parseInt(in.readLine());
+            // setAlgo(algoChoice);
 
             String userIn;
             String passIn;
@@ -55,7 +89,8 @@ public class ServerThread extends Thread {
                 userIn = in.readLine();
                 out.println("Password: ");
                 passIn = in.readLine();
-            } while(!authUser(userIn, passIn));
+                user = Server.getUser(userIn, passIn);
+            } while(user == null);
             out.println("Login Successful");
 
             send(Server.roomList() + COMMANDS);
