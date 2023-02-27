@@ -9,7 +9,6 @@ class Server {
     private static final int PORT = 7791;
     private static KeyPair keyPair = null;
     private static ArrayList<Room> rooms = new ArrayList<>();
-    private static ArrayList<ServerThread> clients = new ArrayList<>();
     private static ArrayList<User> users = new ArrayList<>();
 
     public static void main(String[] args) throws Exception {
@@ -33,30 +32,6 @@ class Server {
         }
     }
 
-    public static void log(String msg) {
-        System.out.println(msg);
-    }
-
-    public void sendToAll(ServerThread client, String message) {
-        message = client.getUser().getName() + ": " + message;
-        for(int i = 0; i < clients.size(); i++) {
-            if(clients.get(i).getUser().getName().equals(client.getUser().getName()))
-                continue;
-            else
-                clients.get(i).send(message);
-        }
-    }
-
-    public void sendToAll(String message) {
-        for(int i = 0; i < clients.size(); i++)
-            clients.get(i).send(message);
-    }
-
-    public void sendServerMsg(String message) {
-        String serverMsg = "[SERVER] " + message;
-        sendToAll(serverMsg);
-    }
-
     public static Room getRoom(int index) {
         System.out.println("getting room");
         return rooms.get(index);
@@ -64,12 +39,12 @@ class Server {
 
     public static void addRoom(Room room) {
         rooms.add(room);
-        log("New room created: " + room.getName());
+        System.out.println("New room created: " + room.getName());
     }
 
     public static void removeRoom(Room room) {
         rooms.remove(room);
-        log("Room deleted: " + room.getName());
+        System.out.println("Room deleted: " + room.getName());
     }
 
     public static int numRooms() {

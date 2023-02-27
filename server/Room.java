@@ -23,11 +23,6 @@ public class Room {
             clients.get(i).send(message);
     }
 
-    public void sendServerMsg(String message) {
-        String serverMsg = "[SERVER] " + message;
-        sendToAll(serverMsg);
-    }
-
     public String getName() {
         return name;
     }

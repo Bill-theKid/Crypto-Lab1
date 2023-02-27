@@ -44,13 +44,12 @@ public class ServerThread extends Thread {
         try {
             generateSessionKey();
 
-            cipher = Cipher.getInstance("DES/CBC/PKCS5Padding");
-
             // init encryption algo
             // Create symmetric DES key for file exchange.
             DESKeySpec desKeySpec = new DESKeySpec(secret); //@#$@#$*
             SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
             sessionKey = keyFactory.generateSecret(desKeySpec);
+            cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
 
 
 
@@ -77,8 +76,8 @@ public class ServerThread extends Thread {
                 parseInput(messageIn);
             }
         } catch(Exception e) {
-            room.sendServerMsg(user.getName() + " disconnected.");
-            Server.log("Client disconnected: " + client.toString());
+            send(user.getName() + " disconnected.");
+            System.out.println("Client disconnected: " + client.toString());
         } finally {
             out.close();
             try {
@@ -120,11 +119,19 @@ public class ServerThread extends Thread {
     public void setAlgo(int algo) throws Exception {
         switch(algo) {
             case 1:
-                DESKeySpec desKeySpec = new DESKeySpec( secret ); //@#$#@*
+                DESKeySpec desKeySpec = new DESKeySpec(secret); //@#$@#$*
                 SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-                SecretKey key = keyFactory.generateSecret(desKeySpec);
+                sessionKey = keyFactory.generateSecret(desKeySpec);
+                cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
                 break;
             case 2:
+                SecretKey aesKeySpec = new SecretKeySpec(secret, "AES");
+                SecretKeyFactory keyfactory = SecretKeyFactory.getInstance("AES");
+                // sessionKey = keyFactory.generateSecret(aesKeySpec);
+                cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+                break;
+            case 3:
+                
                 break;
         }
 
@@ -196,13 +203,8 @@ public class ServerThread extends Thread {
         try {
             cipher.init(Cipher.ENCRYPT_MODE, sessionKey);  
 
-            byte[] iv = cipher.getIV();
-            dataOut.writeInt(iv.length);  // Length of initialization vector, plain text.
-            dataOut.write(iv);                 // Actual initialization vector, plain text.
-
-            byte[] output = cipher.doFinal() ;  // Pad and flush 
-            if (output != null) dataOut.write(output);  // Write remaining to client.
-
+            byte[] output = cipher.doFinal(data);
+            dataOut.write(output);
             dataOut.flush();
         } catch(Exception e) {
             System.out.println(e);
