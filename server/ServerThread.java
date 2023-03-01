@@ -15,82 +15,52 @@ public class ServerThread extends Thread {
     
     private Socket client;
     private User user;
-    private BufferedReader in;
-    private PrintWriter out;
     private DataInputStream dataIn;
     private DataOutputStream dataOut;
     private Room room;
     private static final String COMMANDS = "Type /join [room #] to join a room\nType /create [room name] to create a room\nType /rooms to display open rooms\nType /help to display this message again";
     private byte[] secret;
     private SecretKey sessionKey;
-    private Cipher cipher;
+    private String algorithm;
 
     ServerThread(Socket client) throws IOException {
         this.client = client;
-        in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-        out = new PrintWriter(client.getOutputStream(), true);
         dataIn = new DataInputStream(client.getInputStream());
         dataOut = new DataOutputStream(client.getOutputStream());
     }
 
-    // ServerThread(Socket client, User user) throws IOException {
-    //     this.client = client;
-    //     this.user = user;
-    //     in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-    //     out = new PrintWriter(client.getOutputStream(), true);
-    // }
-
     public void run() {
         try {
-            generateSessionKey();
-
-            // init encryption algo
-            // Create symmetric DES key for file exchange.
-            DESKeySpec desKeySpec = new DESKeySpec(secret); //@#$@#$*
-            SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-            sessionKey = keyFactory.generateSecret(desKeySpec);
-            cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
-
-
-
-
-            // send("Choose an encryption algorithm:\n(Input corresponding number)\n1. DES\n2. AES");
-            // int algoChoice = Integer.parseInt(in.readLine());
-            // setAlgo(algoChoice);
+            BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            int algoChoice = Integer.parseInt(in.readLine());
+            generateSessionKey(algoChoice);
 
             String userIn;
             String passIn;
             do {
-                out.println("Please Login");
-                out.println("Username: ");
-                userIn = in.readLine();
-                out.println("Password: ");
-                passIn = in.readLine();
+                send("Please Login");
+                send("Username: ");
+                userIn = receive();
+                send("Password: ");
+                passIn = receive();
                 user = Server.getUser(userIn, passIn);
             } while(user == null);
-            out.println("Login Successful");
+            send("Login Successful");
 
             send(Server.roomList() + COMMANDS);
             while(true) {
-                String messageIn = in.readLine();
+                String messageIn = receive();
                 parseInput(messageIn);
             }
         } catch(Exception e) {
-            send(user.getName() + " disconnected.");
+            // send(user.getName() + " disconnected.");
             System.out.println("Client disconnected: " + client.toString());
-        } finally {
-            out.close();
-            try {
-                in.close();
-            } catch(IOException e) {
-                e.printStackTrace();
-            }
+            System.out.println(e);
         }
     }
 
-    public void generateSessionKey() {
+    public void generateSessionKey(int algo) {
         try {
-
             System.out.println("Receiving public key...");
             byte[] keyBytes = new byte[dataIn.readInt()];
             dataIn.readFully(keyBytes);
@@ -108,34 +78,30 @@ public class ServerThread extends Thread {
             ka.init(Server.getKeyPair().getPrivate());
             ka.doPhase(clientPub, true);
             secret = ka.generateSecret();
-            System.out.println("Session key generated.");
+            System.out.println("Session secret generated.");
             System.out.println(Base64.getEncoder().encodeToString(secret));
+
+            switch(algo) {
+                case 1:
+                    algorithm = "DES";
+                    break;
+                case 2:
+                    algorithm = "AES";
+                    break;
+                case 3:
+                    algorithm = "DESede";
+                    break;
+            }
+            System.out.println("Algorithm set.");
+
+            KeySpec keyspec = new SecretKeySpec(secret, algorithm);
+            SecretKeyFactory keyfactory = SecretKeyFactory.getInstance(algorithm);
+            sessionKey = keyfactory.generateSecret(keyspec);
+            System.out.println("Session Key generated.");
 
         } catch(Exception e) {
             System.out.println(e);
         }
-    }
-
-    public void setAlgo(int algo) throws Exception {
-        switch(algo) {
-            case 1:
-                DESKeySpec desKeySpec = new DESKeySpec(secret); //@#$@#$*
-                SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("DES");
-                sessionKey = keyFactory.generateSecret(desKeySpec);
-                cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");
-                break;
-            case 2:
-                SecretKey aesKeySpec = new SecretKeySpec(secret, "AES");
-                SecretKeyFactory keyfactory = SecretKeyFactory.getInstance("AES");
-                // sessionKey = keyFactory.generateSecret(aesKeySpec);
-                cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-                break;
-            case 3:
-                
-                break;
-        }
-
-        System.out.println("Algorithm set");
     }
 
     public Boolean authUser(String name, String pass) throws Exception {
@@ -201,6 +167,7 @@ public class ServerThread extends Thread {
         byte[] data = message.getBytes();
 
         try {
+            Cipher cipher = Cipher.getInstance(algorithm + "/ECB/PKCS5Padding");
             cipher.init(Cipher.ENCRYPT_MODE, sessionKey);  
 
             byte[] output = cipher.doFinal(data);
@@ -210,6 +177,21 @@ public class ServerThread extends Thread {
             System.out.println(e);
         }
 
+    }
+
+    public String receive() throws Exception {
+        byte[] data = dataIn.readAllBytes();
+
+        try {
+            Cipher cipher = Cipher.getInstance(algorithm + "/ECB/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, sessionKey);
+
+            byte[] output = cipher.doFinal(data);
+            return output.toString();
+        } catch(Exception e) {
+            System.out.println("receive error");
+        }
+        return "error";
     }
     
     public User getUser() {
