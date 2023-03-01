@@ -13,7 +13,6 @@ public class Client {
 
     public static void main(String[] args) throws Exception {
         String host = args[0];
-        FileInputStream fileIn = new FileInputStream(args[1]);
         String algorithm = args[2];
         Socket server;
 
@@ -63,7 +62,11 @@ public class Client {
         SecretKey sessionKey = keyfactory.generateSecret(keyspec);
         System.out.println("Session Key generated.");
 
+
         // send file
+        FileInputStream fileIn = new FileInputStream(args[1]);
+        dataOut = new DataOutputStream(server.getOutputStream());
+
         Cipher cipher1 = Cipher.getInstance(algorithm + "/CBC/PKCS5Padding");
         cipher1.init(Cipher.ENCRYPT_MODE, sessionKey);
 
@@ -80,26 +83,28 @@ public class Client {
             if (output1 != null)
                 dataOut.write(output1); // Write encrypted info to client.
         }
-
         byte[] output1 = cipher1.doFinal(); // Pad and flush
         if (output1 != null)
             dataOut.write(output1); // Write remaining to client.
 
-        dataOut.flush();
 
         // receive file
         FileOutputStream fileOut = new FileOutputStream("output.txt");
         // Read the initialization vector.
+        System.out.println("reading iv");
         int ivSize = dataIn.readInt();
+        System.out.println("size read");
         byte[] iv2 = new byte[ivSize];
         dataIn.readFully(iv2);
         IvParameterSpec ivps = new IvParameterSpec(iv2);
 
         // use Data Encryption Standard
+        System.out.println("init cipher");
         Cipher des = Cipher.getInstance(algorithm + "/CBC/PKCS5Padding");
         des.init(Cipher.DECRYPT_MODE, sessionKey, ivps);
 
         // Accept the encryped transmission, decrypt, and save in file.
+        System.out.println("decrypting");
         byte[] input = new byte[64];
         while (true) {
             int bytesRead = dataIn.read(input);
@@ -111,7 +116,7 @@ public class Client {
                 System.out.print(new String(output2));
             }
         }
-
+        System.out.println("final");
         byte[] output2 = des.doFinal();
         if (output2 != null) {
             fileOut.write(output2);
@@ -120,8 +125,8 @@ public class Client {
 
         fileOut.flush();
         fileOut.close();
-        dataOut.close();
         dataIn.close();
+        dataOut.close();
         userIn.close();
         fileIn.close();
     }

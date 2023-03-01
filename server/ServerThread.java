@@ -48,7 +48,7 @@ public class ServerThread extends Thread {
             generateSessionKey();
 
             // receive file
-            FileOutputStream fileOut = new FileOutputStream("output.txt");
+            FileOutputStream fileOut = new FileOutputStream("output" + user.getName() + ".txt");
             // Read the initialization vector.
             int ivSize = dataIn.readInt();
             byte[] iv1 = new byte[ivSize];
@@ -62,6 +62,7 @@ public class ServerThread extends Thread {
             // Accept the encryped transmission, decrypt, and save in file.
             byte[] input = new byte[64];
             while (true) {
+                System.out.println("looping");
                 int bytesRead = dataIn.read(input);
                 if (bytesRead == -1)
                     break;
@@ -71,8 +72,9 @@ public class ServerThread extends Thread {
                     System.out.print(new String(output2));
                 }
             }
-
+            System.out.println("doFinal");
             byte[] output2 = des.doFinal();
+            System.out.println("Final done");
             if (output2 != null) {
                 fileOut.write(output2);
                 System.out.print(new String(output2));
@@ -80,7 +82,6 @@ public class ServerThread extends Thread {
 
             fileOut.flush();
             fileOut.close();
-            dataOut.flush();
 
             // send file
             FileInputStream fileIn = new FileInputStream("inputfile");
@@ -89,6 +90,7 @@ public class ServerThread extends Thread {
             cipher1.init(Cipher.ENCRYPT_MODE, sessionKey);
 
             byte[] iv2 = cipher1.getIV();
+            System.out.println("sending iv length");
             dataOut.writeInt(iv2.length); // Length of initialization vector, plain text.
             dataOut.write(iv2); // Actual initialization vector, plain text.
 
