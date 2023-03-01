@@ -26,16 +26,18 @@ class Server {
             while(true) {
                 Socket client = server.accept();
                 System.out.println("Client connected: " + client.toString());
-                new ServerThread(client).start();
+                new ServerThread(client).start(); // send incoming client to new thread
             }
         }
     }
 
     public static KeyPair getKeyPair() {
+        // returns DH Key Pair
         return keyPair;
     }
 
     public static void populateUsers() throws FileNotFoundException {
+        // read user data from file and load into memory
         File file = new File("users.db");
         Scanner input = new Scanner(file, "utf-8");
         for(int i = 0; i < 10; i++) {
@@ -51,6 +53,7 @@ class Server {
     }
 
     public static User getUser(String name, String password) {
+        // select user from table
         for(int i = 0; i < users.size(); i++) {
             if(users.get(i).validLogin(name, password))
                 return users.get(i);
