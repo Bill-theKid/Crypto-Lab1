@@ -1,4 +1,4 @@
 *.class
 inputfile
-output*.txt
+*.txt
 .vscode

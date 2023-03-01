@@ -45,46 +45,75 @@ public class ServerThread extends Thread {
             out.println("Login Successful");
 
             // init keys
-            generateSessionKey();
-
-            // receive file
-            FileOutputStream fileOut = new FileOutputStream("output" + user.getName() + ".txt");
-            // Read the initialization vector.
-            int ivSize = dataIn.readInt();
-            byte[] iv1 = new byte[ivSize];
-            dataIn.readFully(iv1);
-            IvParameterSpec ivps = new IvParameterSpec(iv1);
-
-            // init cipher
-            Cipher des = Cipher.getInstance(algorithm + "/CBC/PKCS5Padding");
-            des.init(Cipher.DECRYPT_MODE, sessionKey, ivps);
-
-            // Accept the encryped transmission, decrypt, and save in file.
-            byte[] input = new byte[64];
-            while (true) {
-                System.out.println("looping");
-                int bytesRead = dataIn.read(input);
-                if (bytesRead == -1)
-                    break;
-                byte[] output2 = des.update(input, 0, bytesRead);
-                if (output2 != null) {
-                    fileOut.write(output2);
-                    System.out.print(new String(output2));
+            try {
+                System.out.println("Receiving public key...");
+                byte[] keyBytes = new byte[dataIn.readInt()];
+                dataIn.readFully(keyBytes);
+                KeyFactory kf = KeyFactory.getInstance("DH");
+                X509EncodedKeySpec x509Spec = new X509EncodedKeySpec(keyBytes);
+                PublicKey clientPub = kf.generatePublic(x509Spec);
+    
+                System.out.println("Sending public key...");
+                keyBytes = Server.getKeyPair().getPublic().getEncoded();
+                dataOut.writeInt(keyBytes.length);
+                dataOut.write(keyBytes);
+    
+                System.out.println("Generating session key...");
+                KeyAgreement ka = KeyAgreement.getInstance("DH");
+                ka.init(Server.getKeyPair().getPrivate());
+                ka.doPhase(clientPub, true);
+                secret = ka.generateSecret();
+                System.out.println("Session secret generated.");
+                System.out.println(Base64.getEncoder().encodeToString(secret));
+    
+                KeySpec keyspec = null;
+                SecretKeyFactory keyfactory = null;
+                switch(algorithm) {
+                    case "AES":
+                        sessionKey = new SecretKeySpec(secret, 0, 32, "AES");
+                        break;
+                    case "DES":
+                        keyspec = new SecretKeySpec(secret, "DES");
+                        keyfactory = SecretKeyFactory.getInstance("DES");
+                        sessionKey = keyfactory.generateSecret(keyspec);
+                        break;
+                    case "DESede":
+                        keyspec = new SecretKeySpec(secret, "DESede");
+                        keyfactory = SecretKeyFactory.getInstance("DESede");
+                        sessionKey = keyfactory.generateSecret(keyspec);
+                        break;
                 }
-            }
-            System.out.println("doFinal");
-            byte[] output2 = des.doFinal();
-            System.out.println("Final done");
-            if (output2 != null) {
-                fileOut.write(output2);
-                System.out.print(new String(output2));
+    
+                System.out.println("Session Key generated.");
+    
+            } catch(Exception e) {
+                System.out.println(e);
             }
 
-            fileOut.flush();
-            fileOut.close();
+            String option = in.readLine();
+            switch(option) {
+                case "send":
+                    get();
+                    break;
+                case "get":
+                    send();
+                    break;
+                default:
+                    System.out.println("error");
+                    break;
+            }
 
-            // send file
-            FileInputStream fileIn = new FileInputStream("inputfile");
+
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+
+    }
+
+    public void send() {
+        try {
+            FileInputStream fileIn = new FileInputStream("serverfile.flag");
 
             Cipher cipher1 = Cipher.getInstance(algorithm + "/CBC/PKCS5Padding");
             cipher1.init(Cipher.ENCRYPT_MODE, sessionKey);
@@ -111,44 +140,45 @@ public class ServerThread extends Thread {
             fileIn.close();
             dataOut.close();
             dataIn.close();
-
-
         } catch(Exception e) {
             e.printStackTrace();
         }
-
-
     }
 
-    public void generateSessionKey() {
+    public void get() {
         try {
-            System.out.println("Receiving public key...");
-            byte[] keyBytes = new byte[dataIn.readInt()];
-            dataIn.readFully(keyBytes);
-            KeyFactory kf = KeyFactory.getInstance("DH");
-            X509EncodedKeySpec x509Spec = new X509EncodedKeySpec(keyBytes);
-            PublicKey clientPub = kf.generatePublic(x509Spec);
+            FileOutputStream fileOut = new FileOutputStream("output" + user.getName() + ".txt");
 
-            System.out.println("Sending public key...");
-            keyBytes = Server.getKeyPair().getPublic().getEncoded();
-            dataOut.writeInt(keyBytes.length);
-            dataOut.write(keyBytes);
+            int ivSize = dataIn.readInt();
+            byte[] iv1 = new byte[ivSize];
+            dataIn.readFully(iv1);
+            IvParameterSpec ivps = new IvParameterSpec(iv1);
 
-            System.out.println("Generating session key...");
-            KeyAgreement ka = KeyAgreement.getInstance("DH");
-            ka.init(Server.getKeyPair().getPrivate());
-            ka.doPhase(clientPub, true);
-            secret = ka.generateSecret();
-            System.out.println("Session secret generated.");
-            System.out.println(Base64.getEncoder().encodeToString(secret));
+            // init cipher
+            Cipher des = Cipher.getInstance(algorithm + "/CBC/PKCS5Padding");
+            des.init(Cipher.DECRYPT_MODE, sessionKey, ivps);
 
-            KeySpec keyspec = new SecretKeySpec(secret, algorithm);
-            SecretKeyFactory keyfactory = SecretKeyFactory.getInstance(algorithm);
-            sessionKey = keyfactory.generateSecret(keyspec);
-            System.out.println("Session Key generated.");
+            // Accept the encryped transmission, decrypt, and save in file.
+            byte[] input = new byte[64];
+            while (true) {
+                int bytesRead = dataIn.read(input);
+                if (bytesRead == -1)
+                    break;
+                byte[] output2 = des.update(input, 0, bytesRead);
+                if (output2 != null) {
+                    fileOut.write(output2);
+                    System.out.print(new String(output2));
+                }
+            }
+            byte[] output2 = des.doFinal();
+            if (output2 != null) {
+                fileOut.write(output2);
+                System.out.print(new String(output2));
+            }
 
+            fileOut.close();
         } catch(Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 }

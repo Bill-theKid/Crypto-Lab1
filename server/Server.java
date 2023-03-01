@@ -36,7 +36,7 @@ class Server {
     }
 
     public static void populateUsers() throws FileNotFoundException {
-        File file = new File("users.txt");
+        File file = new File("users.db");
         Scanner input = new Scanner(file, "utf-8");
         for(int i = 0; i < 10; i++) {
             users.add(new User());

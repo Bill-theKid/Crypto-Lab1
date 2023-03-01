@@ -10,14 +10,15 @@ import java.util.Scanner;
 public class Client {
 
     private static final int PORT = 7791;
+    private static Socket server;
+    private static SecretKey sessionKey;
+    private static String algorithm;
 
     public static void main(String[] args) throws Exception {
-        String host = args[0];
-        String algorithm = args[2];
-        Socket server;
+        String option = args[1];
+        algorithm = args[3];
 
-        server = new Socket(InetAddress.getByName(host), PORT);
-        BufferedReader in = new BufferedReader(new InputStreamReader(server.getInputStream()));
+        server = new Socket(InetAddress.getByName(args[0]), PORT);
         PrintWriter out = new PrintWriter(server.getOutputStream(), true);
         Scanner userIn = new Scanner(System.in);
         out.println(algorithm);
@@ -29,6 +30,7 @@ public class Client {
         System.out.println("Password: ");
         out.println(userIn.nextLine());
 
+        userIn.close();
 
         System.out.println("Generating Diffie-Hellman key pair...");
         KeyPairGenerator kpg = KeyPairGenerator.getInstance("DH");
@@ -57,15 +59,43 @@ public class Client {
         System.out.println("Session key generated.");
         System.out.println(Base64.getEncoder().encodeToString(secret));
 
-        KeySpec keyspec = new SecretKeySpec(secret, algorithm);
-        SecretKeyFactory keyfactory = SecretKeyFactory.getInstance(algorithm);
-        SecretKey sessionKey = keyfactory.generateSecret(keyspec);
+        KeySpec keyspec = null;
+        SecretKeyFactory keyfactory = null;
+        switch(algorithm) {
+            case "AES":
+                sessionKey = new SecretKeySpec(secret, 0, 32, "AES");
+                break;
+            case "DES":
+                keyspec = new SecretKeySpec(secret, "DES");
+                keyfactory = SecretKeyFactory.getInstance("DES");
+                sessionKey = keyfactory.generateSecret(keyspec);
+                break;
+            case "DESede":
+                keyspec = new SecretKeySpec(secret, "DESede");
+                keyfactory = SecretKeyFactory.getInstance("DESede");
+                sessionKey = keyfactory.generateSecret(keyspec);
+                break;
+        }
+
         System.out.println("Session Key generated.");
 
+        switch(option) {
+            case "send":
+                out.println("send");
+                send(args[2]);
+                break;
+            case "get":
+                out.println("get");
+                get(args[2]);
+                break;
+            default:
+                System.out.println("Invalid Command: type 'send' or 'get'");
+        }
+    }
 
-        // send file
-        FileInputStream fileIn = new FileInputStream(args[1]);
-        dataOut = new DataOutputStream(server.getOutputStream());
+    public static void send(String filename) throws Exception {
+        FileInputStream fileIn = new FileInputStream(filename);
+        DataOutputStream dataOut = new DataOutputStream(server.getOutputStream());
 
         Cipher cipher1 = Cipher.getInstance(algorithm + "/CBC/PKCS5Padding");
         cipher1.init(Cipher.ENCRYPT_MODE, sessionKey);
@@ -86,25 +116,25 @@ public class Client {
         byte[] output1 = cipher1.doFinal(); // Pad and flush
         if (output1 != null)
             dataOut.write(output1); // Write remaining to client.
+        dataOut.close();
+        fileIn.close();
+    }
 
+    public static void get(String filename) throws Exception {
+        FileOutputStream fileOut = new FileOutputStream(filename);
+        DataInputStream dataIn = new DataInputStream(server.getInputStream());
 
-        // receive file
-        FileOutputStream fileOut = new FileOutputStream("output.txt");
         // Read the initialization vector.
-        System.out.println("reading iv");
         int ivSize = dataIn.readInt();
-        System.out.println("size read");
         byte[] iv2 = new byte[ivSize];
         dataIn.readFully(iv2);
         IvParameterSpec ivps = new IvParameterSpec(iv2);
 
         // use Data Encryption Standard
-        System.out.println("init cipher");
         Cipher des = Cipher.getInstance(algorithm + "/CBC/PKCS5Padding");
         des.init(Cipher.DECRYPT_MODE, sessionKey, ivps);
 
         // Accept the encryped transmission, decrypt, and save in file.
-        System.out.println("decrypting");
         byte[] input = new byte[64];
         while (true) {
             int bytesRead = dataIn.read(input);
@@ -116,18 +146,12 @@ public class Client {
                 System.out.print(new String(output2));
             }
         }
-        System.out.println("final");
         byte[] output2 = des.doFinal();
         if (output2 != null) {
             fileOut.write(output2);
             System.out.print(new String(output2));
         }
-
-        fileOut.flush();
         fileOut.close();
         dataIn.close();
-        dataOut.close();
-        userIn.close();
-        fileIn.close();
     }
 }
