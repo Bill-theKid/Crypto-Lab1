@@ -122,7 +122,6 @@ public class ServerThread extends Thread {
             cipher.init(Cipher.ENCRYPT_MODE, sessionKey);
 
             byte[] iv = cipher.getIV();
-            System.out.println("sending iv length");
             dataOut.writeInt(iv.length);
             dataOut.write(iv);
 
